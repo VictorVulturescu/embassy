@@ -107,11 +107,20 @@ impl<'d> GenericDriver<'d> {
     }
 
     pub fn sha256(&mut self) -> Sha256<'_, 'd> {
-        pac::HASHCRYPT.ctrl().modify(|w| {
+        let sha256 = pac::HASHCRYPT;
+
+        // Initialise the HASHCRYPT peripheral in SHA-256 mode
+        sha256.ctrl().modify(|w| {
             w.set_mode(Mode::Sha2256);
             w.set_new_hash(true);
         });
-        Sha256 { _peri: self }
+
+        Sha256 {
+            _peri: self,
+            buffer: [0u8; 64],
+            buffer_len: 0usize,
+            total_len: 0u64,
+        }
     }
 
     pub fn aes_ecb(&mut self) -> AesEcb<'_, 'd> {
@@ -194,7 +203,10 @@ impl<'a, 'd> Digest for Sha1<'a, 'd> {
 }
 
 pub struct Sha256<'a, 'd> {
-    _peri: &'a mut GenericDriver<'d>,
+    _peri: &'a mut GenericDriver<'d>, // A reference to the generic driver which holds the hashcrypt peripheral
+    buffer: [u8; 64],                 // A 64 byte buffer in which we can dump incoming data streams
+    buffer_len: usize, // The number of valid bytes currently buffered, resets to 0 after buffer is drained
+    total_len: u64,    // The size of the complete message to be hashed
 }
 
 impl<'a, 'd> Digest for Sha256<'a, 'd> {
