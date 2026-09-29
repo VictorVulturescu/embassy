@@ -28,6 +28,7 @@ pub enum AesError {
     DeviceError,  // Reserved functiones were ussed
 }
 
+// Helper methods for the types that implement the AES trait
 fn wait_data() {
     let mut trys = 0;
     while !pac::HASHCRYPT.status().read().waiting() {
@@ -45,6 +46,17 @@ fn wait_key() {
         cortex_m::asm::nop();
         tries += 1;
         if tries > 25 {
+            break;
+        }
+    }
+}
+
+fn wait_iv_counter() {
+    let mut tries = 0;
+    while !pac::HASHCRYPT.status().read().neediv() {
+        cortex_m::asm::nop();
+        tries += 1;
+        if tries > 15 {
             break;
         }
     }
@@ -78,6 +90,16 @@ fn feed_key(key: &Key) {
         }
     }
 }
+
+fn feed_iv_counter(words: &[u8; 16]) {
+    wait_data();
+    wait_iv_counter();
+
+    for chunk in words.chunks_exact(4) {
+        feed_word(u32::from_le_bytes(chunk.try_into().unwrap()));
+    }
+}
+
 #[allow(dead_code)] // Used by the SHA and AES modes; remove once a caller exists.
 fn read_digest(count: usize, out: &mut [u8]) {
     loop {
