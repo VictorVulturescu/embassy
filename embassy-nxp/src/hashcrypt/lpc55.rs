@@ -256,9 +256,25 @@ pub trait Aes {
     // Check that data.len = output.len
     // Flip STREAMEDLAST back to false in case the user wants to decrypt another message using the same key
 
-    // to handle messages that are not divisible in 4 blocks, add pading with 0, keep track of the size of
-    // the paddind, all padding will produce garbage ouput which will need to be trimmed from the last block
-    // of the digest
+    // to handle messages that are not divisible in 4 blocks for ctr only, add pading with 0, keep track of
+    // the size of the paddind, all padding will produce garbage ouput which will need to be trimmed from
+    // the last block of the digest
+
+    // for the rest of the aes modes, encrypt and decrypt will only be accept messages with the size
+    // divisible by 16
+}
+
+// This trait is ment to be imlemented by AesEcb and AesCbc as they are not streaming algorithms
+// and so, the same padding scheme can not be implemented instead, we will use the padded with
+// PKCS#7, which lets decrypt_padded recover the original message length
+pub trait AesPadded {
+    fn encrypt_padded(&mut self, data: &[u8], output: &mut [u8]) -> Result<usize, AesError>;
+
+    fn decrypt_padded(&mut self, data: &[u8], output: &mut [u8]) -> Result<usize, AesError>;
+
+    // the methods in this trait will be similar to the ones in the Aes trait, but instead
+    // of only accepting messages with the size divisible by 16, it will accept arbitrary
+    // size messages that will be padded acroding to PKCS#7 padding scheme
 }
 
 // Specific driver types
