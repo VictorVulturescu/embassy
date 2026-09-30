@@ -26,6 +26,9 @@ pub enum AesError {
     CounterNeeded, // triggers when .encrypt/.decrypt for ctr are called without set_counter
     WrongKeySize, // triggered set_key is called with a parameter that does not respect the size astablished by set_key_size
     DeviceError,  // Reserved functiones were ussed
+    LengthMismatch,
+    UnalignedLength, // for ecbb and cbc, triggers when in an encrypt or decrypt call, the length of the data is not dividible by 16
+    OutputTooSmall,  // trigers when the buffer for the output is too small for the ciphertext or plaintext
 }
 
 // Helper methods for the types that implement the AES trait
