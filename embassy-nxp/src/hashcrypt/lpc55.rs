@@ -33,6 +33,7 @@ pub enum AesError {
     LengthMismatch,
     UnalignedLength, // for ecbb and cbc, triggers when in an encrypt or decrypt call, the length of the data is not dividible by 16
     OutputTooSmall,  // trigers when the buffer for the output is too small for the ciphertext or plaintext
+    InvlidPadding, // triggers when function from the AesPadded trait is called on data which is not properly padded or that does not have padding at all
 }
 
 // Helper methods for the types that implement the AES trait
@@ -401,7 +402,40 @@ impl<'a, 'd> AesPadded for AesEcb<'a, 'd> {
     }
 
     fn decrypt_padded<'o>(&mut self, data: &[u8], output: &'o mut [u8]) -> Result<&'o [u8], AesError> {
-        todo!("Add function body")
+        let key = match &self.key {
+            Some(k) => k,
+            None => return Err(AesError::KeyNeeded),
+        };
+
+        pac::HASHCRYPT.cryptcfg().modify(|w| {
+            w.set_aesdecrypt(Aesdecrypt::Encrypt);
+        });
+
+        pac::HASHCRYPT.ctrl().modify(|w| {
+            w.set_new_hash(true);
+        });
+
+        let padded_len = (data.len() / 16 + 1) * 16;
+        if output.len() < padded_len {
+            return Err(AesError::OutputTooSmall);
+        }
+
+        feed_key(key);
+        process_blocks_padded(data, output);
+
+        let len = data.len();
+        let n = output[len - 1] as usize;
+
+        if n == 0 || n == 16 {
+            return Err(AesError::InvlidPadding);
+        }
+        for i in (len - n)..len {
+            if output[i] != n as u8 {
+                return Err(AesError::InvlidPadding);
+            }
+        }
+
+        return Ok(&output[..len - n]);
     }
 }
 
