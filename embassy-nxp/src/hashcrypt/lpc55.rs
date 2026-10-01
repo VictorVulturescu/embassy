@@ -104,7 +104,7 @@ fn feed_iv_counter(words: &[u8; 16]) {
     }
 }
 
-fn process_blocks<'o>(data: &[u8], output: &'o mut [u8]) {
+fn process_blocks_padded<'o>(data: &[u8], output: &'o mut [u8]) {
     let mut offset = 0;
     let mut blocks = data.chunks_exact(16);
     for block in &mut blocks {
@@ -372,7 +372,7 @@ impl<'a, 'd> AesPadded for AesEcb<'a, 'd> {
 
         feed_key(key);
 
-        process_blocks(data, output);
+        process_blocks_padded(data, output);
 
         return Ok(&output[..padded_len]);
     }
