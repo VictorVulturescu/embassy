@@ -58,7 +58,7 @@ fn wait_key() {
     }
 }
 
-fn wait_iv_counter() {
+fn _wait_iv_counter() {
     let mut tries = 0;
     while !pac::HASHCRYPT.status().read().neediv() {
         cortex_m::asm::nop();
@@ -98,9 +98,9 @@ fn feed_key(key: &Key) {
     }
 }
 
-fn feed_iv_counter(words: &[u8; 16]) {
+fn _feed_iv_counter(words: &[u8; 16]) {
     wait_data();
-    wait_iv_counter();
+    _wait_iv_counter();
 
     for chunk in words.chunks_exact(4) {
         feed_word(u32::from_le_bytes(chunk.try_into().unwrap()));
@@ -121,7 +121,7 @@ fn process_block(input: &[u8; 16], output: &mut [u8; 16], last: bool) {
     read_digest(4, output);
 }
 
-fn process_blocks(data: &[u8], output: &mut [u8]) {
+fn _process_blocks(data: &[u8], output: &mut [u8]) {
     let nr_blocks = data.len() / 16;
     let mut offset = 0;
 
@@ -254,7 +254,7 @@ impl<'d> GenericDriver<'d> {
             _peri: self,
             key_size: None,
             key: None,
-            iv: None,
+            _iv: None,
         }
     }
 
@@ -278,7 +278,7 @@ impl<'d> GenericDriver<'d> {
             _peri: self,
             key_size: None,
             key: None,
-            counter: None,
+            _counter: None,
         }
     }
     // rename to generic driver or _driver
@@ -449,7 +449,7 @@ pub struct AesCbc<'a, 'd> {
     _peri: &'a mut GenericDriver<'d>,
     key_size: Option<KeySize>,
     key: Option<Key>,
-    iv: Option<[u8; 16]>,
+    _iv: Option<[u8; 16]>,
 }
 
 impl<'a, 'd> Aes for AesCbc<'a, 'd> {
@@ -463,11 +463,11 @@ impl<'a, 'd> Aes for AesCbc<'a, 'd> {
 }
 
 impl<'a, 'd> AesPadded for AesCbc<'a, 'd> {
-    fn encrypt_padded<'o>(&mut self, data: &[u8], output: &'o mut [u8]) -> Result<&'o [u8], AesError> {
+    fn encrypt_padded<'o>(&mut self, _data: &[u8], _output: &'o mut [u8]) -> Result<&'o [u8], AesError> {
         todo!("Add function body");
     }
 
-    fn decrypt_padded<'o>(&mut self, data: &[u8], output: &'o mut [u8]) -> Result<&'o [u8], AesError> {
+    fn decrypt_padded<'o>(&mut self, _data: &[u8], _output: &'o mut [u8]) -> Result<&'o [u8], AesError> {
         todo!("Add function body");
     }
 }
@@ -481,7 +481,7 @@ pub struct AesCtr<'a, 'd> {
     _peri: &'a mut GenericDriver<'d>,
     key_size: Option<KeySize>,
     key: Option<Key>,
-    counter: Option<[u8; 16]>,
+    _counter: Option<[u8; 16]>,
 }
 
 impl<'a, 'd> Aes for AesCtr<'a, 'd> {
