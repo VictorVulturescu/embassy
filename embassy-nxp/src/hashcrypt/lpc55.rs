@@ -1,5 +1,4 @@
 //! Driver for the HASHCRYPT peripheral, mode switch sckeleton
-use core::mem::offset_of;
 use core::u8;
 
 use embassy_hal_internal::Peri;
@@ -383,6 +382,7 @@ impl<'a, 'd> AesPadded for AesEcb<'a, 'd> {
 
         pac::HASHCRYPT.cryptcfg().modify(|w| {
             w.set_aesdecrypt(Aesdecrypt::Encrypt);
+            w.set_streamlast(true);
         });
 
         pac::HASHCRYPT.ctrl().modify(|w| {
@@ -407,18 +407,19 @@ impl<'a, 'd> AesPadded for AesEcb<'a, 'd> {
             None => return Err(AesError::KeyNeeded),
         };
 
+        let padded_len = (data.len() / 16 + 1) * 16;
+        if output.len() < padded_len {
+            return Err(AesError::OutputTooSmall);
+        }
+
         pac::HASHCRYPT.cryptcfg().modify(|w| {
             w.set_aesdecrypt(Aesdecrypt::Encrypt);
+            w.set_streamlast(false);
         });
 
         pac::HASHCRYPT.ctrl().modify(|w| {
             w.set_new_hash(true);
         });
-
-        let padded_len = (data.len() / 16 + 1) * 16;
-        if output.len() < padded_len {
-            return Err(AesError::OutputTooSmall);
-        }
 
         feed_key(key);
         process_blocks_padded(data, output);
